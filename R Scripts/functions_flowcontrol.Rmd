@@ -1,0 +1,415 @@
+---
+title: "Functions and Flow Control"
+author: "Mohamed Shedeed"
+date: "2023-04-04"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(tidy.opts=list(width.cutoff=80), tidy=TRUE)
+```
+
+# Functions and Flow Control
+
+Today we're going to do some practice with function writing and flow control in R. This includes for loops, while loops, and if statements. 
+These kinds of tools can be useful for when you do something repeatedly, or when you need to apply the same code to multiple elements in a list. 
+
+## For loops
+
+Let's start with for loops. These are relatively easy to understand, though they can be a bit confusing to write sometimes. 
+
+Below, I set up a simple example of a for loop. First, we generate some data to play around with, in this case 100 observations from a Normal distribution.
+
+```{r}
+set.seed(201)
+num_vec <- c(rnorm(100))
+```
+
+Next, we can set up a for loop that will let us multiply each element in the vector by 2. 
+
+```{r}
+for(i in 1:length(vec1)){
+  num_vec[i] <- num_vec[i] * 2
+}
+```
+
+Now what if we wanted to place our new value in another vector? For that, can create the empty vector first, then fill it in. 
+
+```{r}
+vec2 <- c()
+for(i in 1:length(num_vec)){
+  vec2[i] <- num_vec[i] * 2
+}
+```
+
+This is useful for when you want to apply some change to your data, but still want to retain the original data.
+
+For large datasets, it's always useful to test out your for loop or function on a subset of your data. Instead of literaly subsetting the data, we can do so in the \verb|for| argument.
+
+```{r}
+set.seed(201)
+num_vec <- c(rnorm(100))
+vec2 <- c()
+
+for(i in 1:45){
+  vec2[i] <- num_vec[i] * 2
+}
+
+length(vec2)
+```
+
+This allows us to test our foor loop on just a portion of the data. This is useful when your for loop might take a long time to run on your entire dataset, so you test it rather than spending a large amount of time running code that ultimately does not work.
+
+Now, these are pretty simple for loops. A more efficient way of doing this would be to just use the following:
+
+```{r}
+vec2 <- num_vec*2
+```
+
+However, for loops become useful when you want to do multiple tasks. For example, say I wanted to generate random data, apply some transformation, then store the transformed data in a list. 
+
+```{r}
+our_list <- list()
+vec2 <- num_vec * 2
+our_list <- append(our_list, vec2)
+```
+
+Now say we wanted to do this 100 times:
+
+```{r}
+set.seed(201)
+our_list <- list()
+for(i in 1:100){
+  num_vec <- rnorm(100)
+  our_list[[i]] <- num_vec*2 #To index elements in a list, we need to use [[i]] rather than [i]
+}
+```
+
+This produces a list containing 100 vectors. 
+
+Now note that when I set up the for loops above, I'm using \verb|1:100| or \verb|1:length(x)| rather than \verb|100| or \verb|length(x)|. Let's see what the difference here is:
+
+```{r}
+for(i in 1:5){
+  print(i)
+}
+
+for(i in 5){
+  print(i)
+}
+
+for(i in length(num_vec)){
+  print(i)
+}
+```
+
+When we use \verb|1:100|, R knows to iterate over each element in the sequence 1 through 100. However, when we don't specify this sequence, R just reads the number we provide it, and indexes appropriately. 
+
+But we don't always need to use a sequence. If we want to apply an operation to the elements of themselves without indexing, we can do this:
+
+```{r}
+new_vec <- c(1:10)
+for(i in new_vec){
+  print(i)
+}
+
+new_empty_vec <- c()
+
+for(i in new_vec){
+  new_empty_vec <- append(new_empty_vec, i)
+}
+```
+
+### Nested for loops
+
+Now let's take what we learned and set up a nested for loop using the list we created above. 
+
+We're going to take each vector in the list, then apply some function to the first element in that vector. Let's say I wanted to print out a statement with the first number in the vector. We can do this using the \verb|cat| function, whcih cancotonates its arguments into a sentence. We use \verb|"\n"| to tell R that we want to end the line there. 
+We can keep track of our progress by having the loop return a progress statement in each iteration. 
+
+```{r}
+new_list <- our_list[1:10]
+for(i in 1:length(new_list)){
+  cat("\n", "now working on vector", i, "\n")
+  for(j in 1:5){
+    cat(new_list[[i]][j], "is in vector", i, "\n")
+  }
+}
+```
+
+## While Loops
+
+While loops operate similarly to for loops, except they keep running until they meet a specified condition. 
+
+Let's say that we want to sift through a vector of data until a particular element is found. 
+
+We can start by taking our integers 1 through 100 and randomly sampling one of them to give us a target point.
+
+```{r}
+set.seed(551)
+all_pts <- 1:10000000
+
+target <- as.numeric(sample(all_pts, 1))
+```
+
+Of course, we know that the target is in the data because we drew it from that data, but we want to design a method of doing this for hypothetical scenarios where we would want to know whether a given value was in some data.
+
+Now the easiest way to do this would be something called brute force searching. When we do this, R is essentially going through every point until it finds the one we're looking for. 
+
+```{r}
+target %in% all_pts
+```
+
+But this method is inefficeint. While we get the answer instantaneously with this simple example, brute force searching with larger data sets is time consuming. Instead, we can use something called binary search.
+
+### Binary Search
+
+Imagine you're trying to find the word "lamp" in a dictionary. Would you search through every word in the dictionary, starting from the beginning? I hope not.
+
+Binary search is like using a dictionary. You open up an approximate part of the dictionary, usually the middle, see which words start and end each page, then adjust accordingly. If you're in P, you'll go back a bit. Get to J, and you know you've gone too far. 
+
+Here, since our numbers are ordered, we're going to start at the median. We'll keep going until we identify the target point, or until we meet our maximum threshold of 100 tries. 
+
+```{r}
+test_pt <- floor(median(all_pts))
+test_pts <- c()
+cnt <- 0
+while(test_pt != target & cnt < 100){
+  cnt <- cnt + 1
+  cat("This is try number", cnt, "\n")
+  if(cnt == 1){
+    new_pts <- all_pts
+  }
+  if(test_pt < target){
+    new_pts <- new_pts[new_pts > test_pt]
+  }else{
+    new_pts <- new_pts[new_pts <= test_pt]
+  }
+  test_pts <- append(test_pt, test_pts)
+  test_pt <- as.numeric(median(new_pts))
+}
+```
+
+Now let's see which one is faster.
+
+```{r}
+t1 <- Sys.time()
+target %in% all_pts
+t2 <- Sys.time()
+time_in <- t2 - t1
+
+t1 <- Sys.time()
+cnt <- 0
+while(test_pt != target){
+  cnt <- cnt + 1
+  if(cnt == 1){
+    test_pt <- median(all_pts)
+    new_pts <- all_pts
+    print(length(new_pts))
+  }
+  if(test_pt < target){
+    new_pts <- new_pts[new_pts > test_pt]
+  }else{
+    new_pts <- new_pts[new_pts <= test_pt]
+  }
+  test_pt <- as.numeric(median(new_pts))
+}
+t2 <- Sys.time()
+while_time <- t2 - t1
+
+cat("The brute search took", time_in, "seconds and the while loop took", while_time, "seconds")
+```
+
+We can see here that the while loop is much faster than the brute force method. But remember that our while loop split the data into subsets based on the median. Let's see what happens when our target point is actually toward the end of the distribution. 
+
+```{r}
+test_pt <- floor(median(all_pts))
+target <- 10000000 - 1
+t1 <- Sys.time()
+target %in% all_pts
+t2 <- Sys.time()
+time_in <- t2 - t1
+
+t1 <- Sys.time()
+cnt <- 0
+while(test_pt != target){
+  cnt <- cnt + 1
+  if(cnt == 1){
+    test_pt <- floor(median(all_pts))
+    new_pts <- all_pts
+  }
+  if(test_pt < target){
+    new_pts <- new_pts[new_pts > test_pt]
+  }else{
+    new_pts <- new_pts[new_pts <= test_pt]
+  }
+  test_pt <- as.numeric(median(new_pts))
+}
+t2 <- Sys.time()
+while_time <- t2 - t1
+
+cat("The brute search took", time_in, "seconds and the while loop took", while_time, "seconds")
+```
+
+Here, the brute force method takes less time. 
+
+# If and If-Else statements
+
+If else statements are fairly simple, and work similarly to the \verb|ifelse()| function you've probably already seen. Let's set up an easy example. We can also break them up so that we only specify an \verb|if| statement, in which case the operation will be applied only to objects that meet the criterion we specified. However, note that if we use this is an function or loop, it will apply any subsequent code to all the data, whether it meets the condition or not. Generally, an \verb|if| statement takes the form \verb|if(condition){do this}|
+
+```{r}
+x <- 4
+
+if(x == 4){
+  print("Nice!")
+}
+
+if(x == 5){ # If condition goes here 
+  print("Yes, x is equal to 5") #success case result goes here
+}else{ #start the "else" here
+  print("I reget to inform you that x is not equal to 5.") #else output goes here
+}
+```
+
+There are a couple of things to note here. The first is that the \verb|else| needs to go directly after the closing bracket \verb|}| for the \verb|if| statement. If you don't do this, R will assume the function call is over, and will only evaluate your if condition. 
+
+We can tweak the \verb|if| statement a little bit to include multiple conditions using \verb|elseif|.
+
+```{r}
+if(x == 5){
+  print("Yes, x is equal to 5")
+}else if(x > 2){
+  print("It's not equal to 5, but it is greater than 2. You win some you lose some")
+}else{
+  "I regret to inform you that x is neither equal to 5 or greater than 2."
+}
+```
+
+We can do this will characters as well.
+
+```{r}
+trump <- "Indicted for 34 counts of falsifying business records."
+
+if(trump == "Indicted for 34 counts of falsifying business records."){
+  print("Trump has been indicted for 34 counts of falsifying business records.")
+}else if(trump == "president of the United States"){
+  print("Trump is the president of the United States.")
+}
+```
+
+Fortunately, the second condition is untrue, so the code did not produce that output. 
+
+# Functions
+
+Functions in R work the same way they do in mathematics. Say we want to take a given set of points, $x$, and map them onto $y$ with a linear equation of the form $y=mx+b$, where $m$ is the slope and $b$ is the intercept. 
+
+```{r}
+x <- c(rnorm(100))
+y <- c()
+
+lin_func <- function(x, m, b){
+  for(i in 1:length(x)){
+    y[i] <- m*x[i]+b
+  }
+  return(y)
+}
+
+y <- lin_func(x, 0.6, 4)
+plot(x, y)
+```
+
+Now say we didn't want to output the y vector, but instead wanted to plot the function. 
+
+```{r}
+lin_func <- function(x, m, b){
+  for(i in 1:length(x)){
+    y[i] <- m*x[i]+b
+  }
+  plot(x, y)
+}
+
+lin_func(x, 0.6, 4)
+```
+
+Now say we wanted to apply this function over a list of $m$ values.
+
+```{r}
+m <- c(1:4)
+b <- c(seq(0, 1, 0.25))
+par(mfrow = c(2, 2))
+for(i in 1:length(m)){
+  lin_func(x, m[i], b[i])
+}
+```
+
+You can use \verb|dev.off| to clear the plots in your plot pane and reset splotting specifications. 
+
+```{r}
+dev.off()
+```
+
+## Recursive Function
+
+A recursive function is one that keeps running until a condition is met. Let's compare a recurisve function's ability in binary search to that of our while loop. This is called a "recursive" version of binary search, as opposed to the "iterative" version we used above in the for loop. 
+
+```{r}
+rec_funk <- function(target, pts, cnt = 0){
+  if(test_pt == target){
+    return(target)
+  }else{
+  test_pt <- median(pts)
+  cnt <- cnt + 1
+  if(cnt == 1){
+    new_pts <- pts
+  }else{
+    test_pt <- median(pts)
+  if(test_pt < target){
+    pts <- pts[pts > test_pt]
+  }else{
+    pts <- pts[pts <= test_pt]
+    }
+  }
+  if(test_pt != target){
+    rec_funk(target, pts, cnt = cnt)
+  }else{
+    return(test_pt)
+  }
+}
+}
+t1 <- Sys.time()
+rec_funk(target = 5, pts = all_pts)
+t2 <- Sys.time()
+funk_diff <- t2 - t1
+
+t1 <- Sys.time()
+cnt <- 0
+while(test_pt != target){
+  cnt <- cnt + 1
+  if(cnt == 1){
+    test_pt <- median(all_pts)
+    new_pts <- all_pts
+  }
+  if(test_pt < target){
+    new_pts <- new_pts[new_pts > test_pt]
+  }else{
+    new_pts <- new_pts[new_pts <= test_pt]
+  }
+  test_pt <- as.numeric(median(new_pts))
+}
+t2 <- Sys.time()
+while_time <- t2 - t1
+
+cat("The function took", funk_diff, "seconds and the while loop took", while_time, "seconds")
+```
+
+Generally, recursive functions are less efficient than their iterative alternative. There are a couple of reasons for this, which I won't go into in detail here. But basically, when you use recursion, you're giving R a lot more to do. Each time the function is called, the computer needs to allocate memory space toward it. This can create even bigger problems when the number of calls is large, and can lead to something called stack overflow (that's where the website name comes from). The "stack" is a place that stores temporary data and variables, and the repeated function calls through recursion build up. Loops, on the other hand, don't have this problem because they don't take up space on the stack. 
+
+Next week, we'll go over some more uses of these concepts for data cleaning.
+
+
+
+
+
+
+
+
