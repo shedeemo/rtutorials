@@ -1,0 +1,202 @@
+---
+title: "Visualizing Tribal Linkages in Jordan"
+author: "Mohamed Shedeed"
+date: "2024-03-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+In this tutorial, I'm going to show you how to use the `visNetwork` package to create interactive network visualizations. Let's start by loading the requied packages:
+
+```{r, message=FALSE}
+pcks <- c('dplyr', 'igraph', 'visNetwork')
+
+for(p in pcks){
+  if(!p %in% installed.packages()){install.packages(p)}
+  library(p, character.only = TRUE)
+}
+```
+
+
+Now let's load in our data. I'm using data I obtained from the social media website Rabettah in December 2022 showing linkages between Jordanian tribes. In our network, our *nodes* are going to represent individual families and our *edges* are going to represent connection between those families. In our case, we are using a *directed network*, meaning edges go one way and not the other. In other words, connections between actors in our network are not mutual. For example, an *undirected* network could be a network of friends in which friendships are reciprocated (i.e. if someone is my friend, I can assume I am also their friend). But within the same friend group, if we were to trace freindships by who sent whom a message in a text chain, this could be an example of a directed network, in which an individual message is sent one way but not the other. 
+
+
+```{r}
+load('Data/tribe_network.RData') # This is our node data
+load('Data/tribe_edges.RData') # This is our edge data
+```
+
+Now lets take a look at whats inside this dataframe.
+
+```{r}
+head(nodes_data)
+str(nodes_data)
+```
+
+In our nodes data.frame, we can see that we have three variables across 498 observations. Each observation contains information for an individual *node* - that is, a unit within our network. First, we have the node ID, which is the ID Rabettah uses on their website for that family. Second, we have the name of the family written in Arabic, and third we have the governorate in which most of the members of that family reside. 
+
+Now let's examine our edges data.frame. 
+
+```{r}
+head(edges_data)
+str(edges_data)
+```
+
+We can see here that we have 2 variables across 427 observations. Each row here represents one edge, or a connection between two nodes. Note that the first column is named `from`, meaning this is the node from which we want the edge to begin, and `to`, meaning this is the target node. Again, these connections are not reciprocal, and so being able to define what constitutes a `source` and `target` node here is important. In this context, I made the source node (the `from` column) the larger tribal structure, and the target node the family or unit nested within that structure. 
+
+An equally valid representation of this network would show the reverse, in which arrows flowed inward toward the larger structure. Though this choice does not necessarily matter within this context, the most important thing is to remain consistent when defining which nodes constitute the source and which ones the target. For example, if we wanted to calculate the *in-degree*, which captures the number of connections pointing toward a node, this would mean something entirely different depending on how we defined our sources and targets. 
+
+Now that we have loaded in our data and have a basic understanding of its structure, we can start visualizing it. Let's create the most basic representation we can of this network. 
+
+```{r}
+set.seed(551)
+visNetwork(nodes_data[1:2], edges_data)
+```
+
+This plot merely shows us an undirected network and is not very interactive. Let's add a few features to this. First, we can use all the information in the data.frame so that we can color-code our nodes by governorate. Let's also use this opportunity to visualize the direction of our edges. 
+
+```{r}
+visNetwork(nodes_data, edges_data) |> 
+  visEdges(arrows = 'from')
+```
+
+But this doesn't really tell us much, since we have no information about what the colors mean. Let's add a legend and a title to our visualization.
+
+```{r}
+visNetwork(nodes_data, 
+           edges_data,
+           main = 'Tribes of Jordan') |> 
+  visEdges(arrows = 'from') |> 
+  visLegend(
+    useGroups = TRUE, 
+    main = list(
+      text = 'Governorate'),
+    position = 'right'
+  )
+```
+
+That's looking better. But we can use some of the features built into the `visNetwork` package to make this more user-friendly. The code below used `visOptions` to add some new features. 
+
+```{r}
+visNetwork(nodes_data, 
+           edges_data,
+           main = 'Tribes of Jordan') |> 
+  visEdges(arrows = 'from') |> 
+  visLegend(
+    useGroups = TRUE, 
+    main = list(
+      text = 'Governorate'),
+    position = 'right'
+  ) |> 
+  visOptions(
+    highlightNearest = list(
+      enabled = TRUE,
+      hover = TRUE,
+      degree = 1,
+      hideColor = 'lightgray'
+    )
+  )
+```
+
+The `highlightNearest` option in visOptions takes a number of arguments. First, we enable the feature, then set `hover = TRUE` so that when we hover over a node, it highlights the nearest node(s). Next, we set the degree to 1 and set the `hidecolor` argument to `lightgray` so that when we highlight over one node, all other nodes (other than the nearest ones) will become gray. 
+
+```{r}
+visNetwork(nodes_data, 
+           edges_data,
+           main = 'Tribes of Jordan') |> 
+  visEdges(arrows = 'from') |> 
+  visLegend(
+    useGroups = TRUE, 
+    main = list(
+      text = 'Governorate'),
+    position = 'right'
+  ) |> 
+  visOptions(
+    highlightNearest = list(
+      enabled = TRUE,
+      hover = TRUE,
+      degree = 1,
+      hideColor = 'lightgray'
+    ), 
+    nodesIdSelection = list(
+      enabled = TRUE,
+      main = 'Family'
+    ),
+    collapse = TRUE,
+    autoResize = TRUE,
+    selectedBy = list(
+      variable = 'group', 
+      main = 'Governorate'
+    ))
+```
+
+The code above does several things. First, we add an ID selection feature, which allows us to select specific nodes from a drop-down menu, to whcih we add a title. Next, we use the `selectedBy` feature to select nodes based on their governorate. 
+
+This is all nice, but these fonts are really ugly. Let's change them. I like to use the Poppins font. we can set up style parameters that we then feed into the main code. 
+
+```{r}
+# One for the main title
+poppins_style <- 'font-family: Poppins, sans-serif;font-weight:bold;font-size:25px;text-align:center;'
+
+# One for the legend title
+poppins_style_sub <- 'font-family: Poppins, sans-serif;font-weight:bold;font-size:15px;text-align:center;'
+
+# Another for the menu titles
+poppins_style_menu <- 'font-family: Poppins, sans-serif;font-weight:400;font-size:13px;text-align:center;'
+```
+
+Another issue is that our legend is pretty much unreadable. Let's reorganize it by specifying the number of columns used. We're also going to use `visInteraction` to add navigation controls.
+
+```{r}
+visNetwork(nodes_data, edges_data,
+           main = list(
+             text = 'Tribes of Jordan',
+             style = poppins_style
+            ),
+           height = '500px', 
+           width = '100%') |> 
+  visEdges(arrows = 'from') |>
+  visLegend( 
+    useGroups = TRUE, 
+    main = list(
+      text = 'Governorate',
+      style = poppins_style_sub),
+    position = 'right',
+    ncol = 3
+  ) |> 
+  visOptions(highlightNearest = list(
+    enabled = TRUE,
+    hover = TRUE,
+    degree = 1,
+    hideColor = 'lightgray'
+    ), 
+    nodesIdSelection = list(
+      enabled = TRUE,
+      main = 'Family',
+      style = poppins_style_menu
+    ),
+    collapse = TRUE,
+    autoResize = TRUE,
+    selectedBy = list(
+      variable = 'group', 
+      main = 'Governorate',
+      style = poppins_style_menu
+    )) |> 
+  visInteraction(
+    navigationButtons = TRUE,
+    hover = TRUE
+  )
+```
+
+
+
+
+
+
+
+
+
+
