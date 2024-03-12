@@ -1,2 +1,2 @@
 # rtutorials
-This repository holds some of the R Tutorials I wrote when I TA'd methods classes at OSU. You can find them in the R Scripts folder.
+Here are some R tutorials I've developed. They're a mix of files I wrote for recitation sessions I led when I TA'd methods courses as well as other tutorials on techniques I've found useful in my own research. 
